@@ -6,24 +6,43 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.coroutineScope
 import com.example.datastoreplayground.databinding.ActivityMainBinding
+import com.google.android.material.switchmaterial.SwitchMaterial
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    lateinit var appSetting: AppSetting
 
-    private var jobLanguage: Job? = null
-    private var jobNotification: Job? = null
+    @Inject lateinit var appSetting: AppSetting
+
+//    private val switchMaterial by lazy {
+//        findViewById<SwitchMaterial>(R.id.switch_darkmode)
+//    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        lifecycle.coroutineScope.launch {
+            appSetting.getDarkmodeSetting().collectLatest {
+                if(it){
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                } else {
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                }
+            }
+        }
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
 
-        appSetting = AppSetting(this)
+
 
         //radio button language
         binding.radioGroup.setOnCheckedChangeListener { radioGroup, chakedId ->
@@ -45,13 +64,18 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.switchDarkmode.setOnCheckedChangeListener { _ , isChecked ->
-            if (isChecked){
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            lifecycle.coroutineScope.launch {
+                appSetting.storeDarkmodeSetting(isChecked)
+                if (isChecked){
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                } else {
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                }
             }
+
         }
 
-        jobLanguage?.cancel()
-        jobLanguage = lifecycle.coroutineScope.launchWhenCreated {
+        lifecycle.coroutineScope.launchWhenCreated {
             appSetting.getLanguageSetting().collect { languge ->
                 if (languge.equals("ID")){
                     binding.rbIndonesia.isChecked = true
@@ -61,13 +85,16 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        jobNotification?.cancel()
-        jobNotification = lifecycle.coroutineScope.launchWhenCreated {
+        lifecycle.coroutineScope.launchWhenCreated {
             appSetting.getNotificationSetting().collect {
                 binding.switchNotification.isChecked = it
             }
         }
 
-
+       lifecycle.coroutineScope.launchWhenCreated {
+          appSetting.getDarkmodeSetting().collect {
+              binding.switchDarkmode.isChecked = it
+          }
+       }
     }
 }
