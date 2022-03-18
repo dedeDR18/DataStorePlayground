@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">DataStorePlayground</string>
+    <string name="language">Language</string>
+    <string name="english">English</string>
+    <string name="indonesia">Indonesia</string>
+    <string name="dark_mode">Dark Mode</string>
+</resources>
